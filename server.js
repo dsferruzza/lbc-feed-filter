@@ -17,11 +17,13 @@ app.get(/^\/lbc\/(.+)$/, function(req, res) {
 	var feed = null;
 
 	// Get the feed
+	console.log('Fetching feed ' + url);
 	request(url)
 		// Parse it
 		.pipe(new FeedParser())
 		// Fetch better description
 		.pipe(es.map(function(data, cb) {
+			console.log('Fetching description ' + data.link);
 			request({ url: data.link, encoding: null }, function(error, response, body) {
 				if (error || response.statusCode != 200) console.log('Can\'t fetch description!');
 				else {
