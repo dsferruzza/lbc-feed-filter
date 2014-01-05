@@ -24,7 +24,11 @@ app.get(/^\/lbc\/(.+)$/, function(req, res) {
 		// Fetch better description
 		.pipe(es.map(function(data, cb) {
 			console.log('Fetching description ' + data.link);
-			request({ url: data.link, encoding: null }, function(error, response, body) {
+			request({
+				url: data.link,
+				encoding: null,
+				timeout: 5000,
+			}, function(error, response, body) {
 				if (error || response.statusCode != 200) console.log('Can\'t fetch description!');
 				else {
 					// Decode non UTF-* crappy encoding
@@ -37,8 +41,9 @@ app.get(/^\/lbc\/(.+)$/, function(req, res) {
 
 					// Insert it in the feed item
 					data.description += '<p><strong>Description :</strong> <blockquote>' + description + '</blockquote></p>';
-					cb(null, data);
 				}
+
+				cb(null, data);
 			});
 		}))
 		// For each item
