@@ -67,7 +67,11 @@ app.get(/^\/lbc\/(.+)$/, function(req, res) {
 		// For each item
 		.on('data', function(data) {
 			// Create an new feed if necessarry
-			if (feed === null) feed = new RSS(data.meta);
+			if (feed === null) {
+				var headers = data.meta;
+				headers.feed_url = headers.link;
+				feed = new RSS(data.meta);
+			}
 
 			// Create url field
 			data.url = data.link;
