@@ -1,3 +1,5 @@
+var fs = require('fs');
+var URL = require('url');
 var es = require('event-stream');
 var express = require('express');
 var request = require('request');
@@ -12,6 +14,9 @@ app.configure(function() {
 	app.use(express.urlencoded());
 });
 
+if (!fs.existsSync('config.json')) var config = {};
+else var config = JSON.parse(fs.readFileSync('config.json'));
+
 app.get(/^\/lbc\/(.+)$/, function(req, res) {
 	var url = req.params[0];
 	var feed = null;
@@ -23,13 +28,19 @@ app.get(/^\/lbc\/(.+)$/, function(req, res) {
 		.pipe(new FeedParser())
 		// Fetch better description
 		.pipe(es.map(function(data, cb) {
+			var pageUrl = data.link;
+
+			// Use proxy if a key is set
+			if (typeof config.key != 'undefined' && typeof config.proxy != 'undefined')
+				pageUrl = URL.resolve(config.proxy, '?key=' + config.key + '&url=' + pageUrl);
+
 			console.log('Fetching description ' + data.link);
 			request({
-				url: data.link,
+				url: pageUrl,
 				encoding: null,
-				timeout: 5000,
+				timeout: 20000,
 			}, function(error, response, body) {
-				if (error || response.statusCode != 200) console.log('Can\'t fetch description!');
+				if (error || response.statusCode != 200) console.log('Can\'t fetch description! (' + data.link + ')');
 				else {
 					// Decode non UTF-* crappy encoding
 					var enc = /<meta charset="(.+?)"/.exec(body)[1];

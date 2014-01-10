@@ -1,4 +1,6 @@
 node_modules
+proxy/key.txt
+config.json
 
 # Sublime Text projects
 *.sublime-project
