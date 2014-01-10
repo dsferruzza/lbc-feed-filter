@@ -24,8 +24,14 @@ app.get(/^\/lbc\/(.+)$/, function(req, res) {
 	// Get the feed
 	console.log('Fetching feed ' + url);
 	request(url)
+		.on('error', function(e) {
+			res.send(500, e);
+		})
 		// Parse it
 		.pipe(new FeedParser())
+		.on('error', function(e) {
+			res.send(500, 'Can\'t parse feed!');
+		})
 		// Fetch better description
 		.pipe(es.map(function(data, cb) {
 			var pageUrl = data.link;
@@ -69,7 +75,7 @@ app.get(/^\/lbc\/(.+)$/, function(req, res) {
 			feed.item(data);
 		})
 		.on('end', function() {
-			res.send(feed.xml());
+			if (feed !== null) res.send(feed.xml());
 		});
 });
 
