@@ -1,4 +1,5 @@
 var fs = require('fs');
+var path = require('path');
 var URL = require('url');
 var es = require('event-stream');
 var express = require('express');
@@ -14,8 +15,8 @@ app.configure(function() {
 	app.use(express.urlencoded());
 });
 
-if (!fs.existsSync('config.json')) var config = {};
-else var config = JSON.parse(fs.readFileSync('config.json'));
+if (!fs.existsSync(path.join(__dirname, 'config.json'))) var config = {};
+else var config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json')));
 
 app.get(/^\/lbc\/(.+)$/, function(req, res) {
 	var url = req.params[0];
