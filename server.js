@@ -1,6 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var URL = require('url');
+var crypto = require('crypto');
 var es = require('event-stream');
 var express = require('express');
 var request = require('request');
@@ -41,28 +42,44 @@ app.get(/^\/lbc\/(.+)$/, function(req, res) {
 			if (typeof config.key != 'undefined' && typeof config.proxy != 'undefined')
 				pageUrl = URL.resolve(config.proxy, '?key=' + config.key + '&url=' + pageUrl);
 
-			console.log('Fetching description ' + data.link);
-			request({
-				url: pageUrl,
-				encoding: null,
-				timeout: 20000,
-			}, function(error, response, body) {
-				if (error || response.statusCode != 200) console.log('Can\'t fetch description! (' + data.link + ')');
-				else {
-					// Decode non UTF-* crappy encoding
-					var enc = /<meta charset="(.+?)"/.exec(body)[1];
-					body = iconv.decode(body, enc);
+			// Check if description is in cache
+			var hash = crypto.createHash('md5');
+			hash.update(data.link, 'utf8');
+			var cachePath = 'cache/' + hash.digest('hex');
+			if (!fs.existsSync(cachePath)) {
+				console.log('Fetching description ' + data.link);
+				request({
+					url: pageUrl,
+					encoding: null,
+					timeout: 20000,
+				}, function(error, response, body) {
+					if (error || response.statusCode != 200) console.log('Can\'t fetch description! (' + data.link + ')');
+					else {
+						// Decode non UTF-* crappy encoding
+						var enc = /<meta charset="(.+?)"/.exec(body)[1];
+						body = iconv.decode(body, enc);
 
-					// Extract description
-					var description = /<div class="content">([^]+?)<\/div>/g.exec(body)[1];
-					description = description.trim();
+						// Cache it
+						var hash = crypto.createHash('md5');
+						hash.update(data.link, 'utf8');
+						fs.writeFileSync('cache/' + hash.digest('hex'), body);
+					}
+				});
+			}
 
-					// Insert it in the feed item
-					data.description += '<p><strong>Description :</strong> <blockquote>' + description + '</blockquote></p>';
-				}
+			// Get description
+			if (fs.existsSync(cachePath)) {
+				var body = fs.readFileSync(cachePath, {encoding: 'utf8'});
 
-				cb(null, data);
-			});
+				// Extract description
+				var description = /<div class="content">([^]+?)<\/div>/g.exec(body)[1];
+				description = description.trim();
+
+				// Insert it in the feed item
+				data.description += '<p><strong>Description :</strong> <blockquote>' + description + '</blockquote></p>';
+			}
+
+			cb(null, data);
 		}))
 		// For each item
 		.on('data', function(data) {
