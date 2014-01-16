@@ -42,6 +42,18 @@ app.get(/^\/lbc\/(.+)$/, function(req, res) {
 			if (typeof config.key != 'undefined' && typeof config.proxy != 'undefined')
 				pageUrl = URL.resolve(config.proxy, '?key=' + config.key + '&url=' + pageUrl);
 
+			// What to do with description
+			function applyDescription(body, data) {
+				// Extract description
+				var description = /<div class="content">([^]+?)<\/div>/g.exec(body)[1];
+				description = description.trim();
+
+				// Insert it in the feed item
+				data.description += '<p><strong>Description :</strong> <blockquote>' + description + '</blockquote></p>';
+
+				return data;
+			}
+
 			// Check if description is in cache
 			var hash = crypto.createHash('md5');
 			hash.update(data.link, 'utf8');
@@ -63,24 +75,19 @@ app.get(/^\/lbc\/(.+)$/, function(req, res) {
 						var hash = crypto.createHash('md5');
 						hash.update(data.link, 'utf8');
 						fs.writeFileSync('cache/' + hash.digest('hex'), body);
+
+						// Process it
+						data = applyDescription(body, data);
 					}
+					
+					cb(null, data);
 				});
 			}
-
-			// Get description
-			if (fs.existsSync(cachePath)) {
+			else {
 				var body = fs.readFileSync(cachePath, {encoding: 'utf8'});
-
-				// Extract description
-				var description = /<div class="content">([^]+?)<\/div>/g.exec(body)[1];
-				description = description.trim();
-
-				// Insert it in the feed item
-				data.description += '<p><strong>Description :</strong> <blockquote>' + description + '</blockquote></p>';
+				data = applyDescription(body, data);
+				cb(null, data);
 			}
-			else console.log('Can\'t read cached file "' + cachePath + '"! (corresponding to ' + pageUrl + ')');
-
-			cb(null, data);
 		}))
 		// For each item
 		.on('data', function(data) {
