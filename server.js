@@ -78,6 +78,7 @@ app.get(/^\/lbc\/(.+)$/, function(req, res) {
 				// Insert it in the feed item
 				data.description += '<p><strong>Description :</strong> <blockquote>' + description + '</blockquote></p>';
 			}
+			else console.log('Can\'t read cached file "' + cachePath + '"! (corresponding to ' + pageUrl + ')');
 
 			cb(null, data);
 		}))
